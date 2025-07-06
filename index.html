@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الألغاز</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+            display: block;
+            width: 100%;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        .success-btn {
+            background-color: #2ecc71;
+        }
+        .success-btn:hover {
+            background-color: #27ae60;
+        }
+        #main-menu {
+            display: block;
+        }
+        #username-section, #puzzle-section, #history-section {
+            display: none;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+        .puzzle-tile {
+            background-color: #3498db;
+            color: white;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .puzzle-tile:hover {
+            background-color: #2980b9;
+        }
+        .puzzle-tile.empty {
+            background-color: transparent;
+            border: 2px dashed #ccc;
+            cursor: default;
+        }
+        #puzzle-feedback {
+            text-align: center;
+            font-size: 20px;
+            margin: 20px 0;
+            min-height: 30px;
+        }
+        .history-item {
+            background-color: white;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .history-item .delete-item {
+            position: absolute;
+            left: 15px;
+            top: 15px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+        .history-info {
+            margin-right: 40px;
+        }
+        .success {
+            color: #2ecc71;
+        }
+        .failed {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- الصفحة الرئيسية -->
+        <div id="main-menu">
+            <h1>لعبة الألغاز</h1>
+            <button id="start-game" class="btn">بدء اللعبة</button>
+            <button id="view-history" class="btn">السجل</button>
+        </div>
+
+        <!-- قسم إدخال الاسم -->
+        <div id="username-section">
+            <h2>أدخل اسمك</h2>
+            <input type="text" id="username" placeholder="اسم اللاعب">
+            <button id="start-puzzle" class="btn">بدء اللغز</button>
+            <button id="back-to-main-from-name" class="btn">العودة</button>
+        </div>
+
+        <!-- قسم الألغاز -->
+        <div id="puzzle-section">
+            <h2 id="puzzle-title">عنوان اللغز</h2>
+            <div id="puzzle-description">وصف اللغز</div>
+            <div id="puzzle-content"></div>
+            <div id="puzzle-feedback"></div>
+            <button id="next-stage" class="btn" style="display: none;">التالي</button>
+            <button id="back-to-main-from-game" class="btn">العودة للصفحة الرئيسية</button>
+        </div>
+
+        <!-- قسم السجل -->
+        <div id="history-section">
+            <h1>سجل اللاعبين</h1>
+            <button id="clear-all-history" class="btn delete-btn">🗑️ حذف السجل بالكامل</button>
+            <div id="history-list"></div>
+            <button id="back-to-main-from-history" class="btn">العودة للصفحة الرئيسية</button>
+        </div>
+    </div>
+
+    <script>
+        // انتظر حتى يتم تحميل DOM بالكامل
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("تم تحميل الصفحة، جاهز للتنفيذ");
+            
+            // بيانات الألغاز
+            const puzzles = [
+                {
+                    id: 1,
+                    title: "لغز ترتيب الأرقام",
+                    description: "قم بترتيب الأرقام من 1 إلى 8 مع ترك المربع الأخير فارغًا",
+                    stages: [
+                        {
+                            initialOrder: [2, 3, 6, 1, 4, 8, 7, 5],
+                            solution: [1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        {
+                            initialOrder: [3, 1, 2, 4, 5, 6, 8, 7],
+                            solution: [1, 2, 3, 4, 5, 6, 7, 8]
+                        },
+                        {
+                            initialOrder: [8, 7, 6, 5, 4, 3, 2, 1],
+                            solution: [1, 2, 3, 4, 5, 6, 7, 8]
+                        }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: "لغز الرياضيات البسيط",
+                    description: "حل المسألة الرياضية",
+                    stages: [
+                        {
+                            question: "5 + 7 = ?",
+                            solution: "12"
+                        },
+                        {
+                            question: "9 × 6 = ?",
+                            solution: "54"
+                        },
+                        {
+                            question: "15 ÷ 3 + 4 = ?",
+                            solution: "9"
+                        }
+                    ]
+                }
+            ];
+
+            // حالة التطبيق
+            const state = {
+                currentView: 'main-menu',
+                currentPuzzle: 0,
+                currentStage: 0,
+                username: '',
+                history: JSON.parse(localStorage.getItem('puzzleHistory')) || []
+            };
+
+            // عناصر DOM
+            const mainMenu = document.getElementById('main-menu');
+            const usernameSection = document.getElementById('username-section');
+            const puzzleSection = document.getElementById('puzzle-section');
+            const historySection = document.getElementById('history-section');
+
+            // عناصر التحكم
+            const startGameBtn = document.getElementById('start-game');
+            const viewHistoryBtn = document.getElementById('view-history');
+            const startPuzzleBtn = document.getElementById('start-puzzle');
+            const nextStageBtn = document.getElementById('next-stage');
+            const clearHistoryBtn = document.getElementById('clear-all-history');
+            const backToMainFromName = document.getElementById('back-to-main-from-name');
+            const backToMainFromGame = document.getElementById('back-to-main-from-game');
+            const backToMainFromHistory = document.getElementById('back-to-main-from-history');
+
+            // عناصر اللغز
+            const puzzleTitle = document.getElementById('puzzle-title');
+            const puzzleDescription = document.getElementById('puzzle-description');
+            const puzzleContent = document.getElementById('puzzle-content');
+            const puzzleFeedback = document.getElementById('puzzle-feedback');
+            const usernameInput = document.getElementById('username');
+            const historyList = document.getElementById('history-list');
+
+            // تهيئة التطبيق
+            function init() {
+                console.log("تهيئة التطبيق...");
+                
+                // تعيين معالجي الأحداث
+                startGameBtn.addEventListener('click', function() {
+                    console.log("نقر على بدء اللعبة");
+                    showView('username-section');
+                });
+                
+                viewHistoryBtn.addEventListener('click', function() {
+                    console.log("نقر على عرض السجل");
+                    showHistory();
+                });
+                
+                startPuzzleBtn.addEventListener('click', function() {
+                    console.log("نقر على بدء اللغز");
+                    startPuzzle();
+                });
+                
+                nextStageBtn.addEventListener('click', function() {
+                    console.log("نقر على التالي");
+                    nextStage();
+                });
+                
+                clearHistoryBtn.addEventListener('click', function() {
+                    console.log("نقر على حذف السجل");
+                    clearAllHistory();
+                });
+                
+                backToMainFromName.addEventListener('click', function() {
+                    console.log("العودة من إدخال الاسم");
+                    showView('main-menu');
+                });
+                
+                backToMainFromGame.addEventListener('click', function() {
+                    console.log("العودة من اللعبة");
+                    showView('main-menu');
+                });
+                
+                backToMainFromHistory.addEventListener('click', function() {
+                    console.log("العودة من السجل");
+                    showView('main-menu');
+                });
+
+                // تحميل السجل من localStorage
+                loadHistory();
+                
+                console.log("تمت التهيئة بنجاح");
+            }
+
+            // عرض واجهة معينة
+            function showView(viewName) {
+                console.log("عرض واجهة: " + viewName);
+                state.currentView = viewName;
+                
+                // إخفاء جميع الأقسام
+                mainMenu.style.display = 'none';
+                usernameSection.style.display = 'none';
+                puzzleSection.style.display = 'none';
+                historySection.style.display = 'none';
+                
+                // عرض القسم المطلوب
+                if (viewName === 'main-menu') {
+                    mainMenu.style.display = 'block';
+                } else if (viewName === 'username-section') {
+                    usernameSection.style.display = 'block';
+                } else if (viewName === 'puzzle-section') {
+                    puzzleSection.style.display = 'block';
+                } else if (viewName === 'history-section') {
+                    historySection.style.display = 'block';
+                }
+            }
+
+            // بدء اللغز
+            function startPuzzle() {
+                const username = usernameInput.value.trim();
+                if (!username) {
+                    alert('الرجاء إدخال اسم اللاعب');
+                    return;
+                }
+
+                state.username = username;
+                state.currentPuzzle = 0;
+                state.currentStage = 0;
+                showView('puzzle-section');
+                loadPuzzle();
+            }
+
+            // تحميل اللغز الحالي
+            function loadPuzzle() {
+                const puzzle = puzzles[state.currentPuzzle];
+                const stage = puzzle.stages[state.currentStage];
+
+                puzzleTitle.textContent = puzzle.title;
+                puzzleDescription.textContent = puzzle.description;
+                puzzleFeedback.textContent = '';
+                nextStageBtn.style.display = 'none';
+
+                // مسح المحتوى السابق
+                puzzleContent.innerHTML = '';
+
+                if (puzzle.id === 1) { // لغز ترتيب الأرقام
+                    renderNumberPuzzle(stage);
+                } else if (puzzle.id === 2) { // لغز الرياضيات
+                    renderMathPuzzle(stage);
+                }
+            }
+
+            // عرض لغز الأرقام
+            function renderNumberPuzzle(stage) {
+                const tiles = [...stage.initialOrder, null]; // إضافة المربع الفارغ
+                let emptyIndex = tiles.length - 1;
+
+                const grid = document.createElement('div');
+                grid.className = 'puzzle-grid';
+
+                tiles.forEach((tile, index) => {
+                    const tileElement = document.createElement('div');
+                    tileElement.className = tile ? 'puzzle-tile' : 'puzzle-tile empty';
+                    tileElement.textContent = tile || '';
+                    tileElement.dataset.index = index;
+
+                    if (tile) {
+                        tileElement.addEventListener('click', function() {
+                            // تحقق إذا كان المربع المجاور فارغًا
+                            const adjacentIndices = getAdjacentIndices(parseInt(this.dataset.index), emptyIndex);
+                            
+                            if (adjacentIndices.includes(emptyIndex)) {
+                                // تبديل المواقع
+                                const temp = tiles[index];
+                                tiles[index] = tiles[emptyIndex];
+                                tiles[emptyIndex] = temp;
+                                
+                                emptyIndex = index;
+                                renderTiles(grid, tiles);
+                                
+                                // تحقق إذا كان الحل صحيحًا
+                                checkSolution(tiles.slice(0, -1), stage.solution);
+                            }
+                        });
+                    }
+
+                    grid.appendChild(tileElement);
+                });
+
+                puzzleContent.appendChild(grid);
+
+                function renderTiles(container, tiles) {
+                    container.innerHTML = '';
+                    tiles.forEach((tile, index) => {
+                        const tileElement = document.createElement('div');
+                        tileElement.className = tile ? 'puzzle-tile' : 'puzzle-tile empty';
+                        tileElement.textContent = tile || '';
+                        tileElement.dataset.index = index;
+
+                        if (tile) {
+                            tileElement.addEventListener('click', function() {
+                                const adjacentIndices = getAdjacentIndices(parseInt(this.dataset.index), emptyIndex);
+                                
+                                if (adjacentIndices.includes(emptyIndex)) {
+                                    const temp = tiles[index];
+                                    tiles[index] = tiles[emptyIndex];
+                                    tiles[emptyIndex] = temp;
+                                    
+                                    emptyIndex = index;
+                                    renderTiles(grid, tiles);
+                                    checkSolution(tiles.slice(0, -1), stage.solution);
+                                }
+                            });
+                        }
+
+                        container.appendChild(tileElement);
+                    });
+                }
+            }
+
+            // الحصول على المربعات المجاورة
+            function getAdjacentIndices(index, emptyIndex) {
+                const row = Math.floor(index / 3);
+                const col = index % 3;
+                const adjacent = [];
+
+                // أعلى
+                if (row > 0) adjacent.push(index - 3);
+                // أسفل
+                if (row < 2) adjacent.push(index + 3);
+                // يسار
+                if (col > 0) adjacent.push(index - 1);
+                // يمين
+                if (col < 2) adjacent.push(index + 1);
+
+                return adjacent;
+            }
+
+            // عرض لغز الرياضيات
+            function renderMathPuzzle(stage) {
+                puzzleDescription.textContent = stage.question;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'أدخل الحل';
+                input.id = 'math-answer';
+
+                const submitBtn = document.createElement('button');
+                submitBtn.className = 'btn success-btn';
+                submitBtn.textContent = 'تحقق';
+                submitBtn.addEventListener('click', function() {
+                    const answer = input.value.trim();
+                    if (answer === stage.solution) {
+                        puzzleFeedback.textContent = '✅ أحسنت! الحل صحيح';
+                        puzzleFeedback.className = 'success';
+                        nextStageBtn.style.display = 'block';
+                        saveHistory(true);
+                    } else {
+                        puzzleFeedback.textContent = '❌ الحل غير صحيح';
+                        puzzleFeedback.className = 'failed';
+                        saveHistory(false);
+                    }
+                });
+
+                puzzleContent.appendChild(input);
+                puzzleContent.appendChild(submitBtn);
+            }
+
+            // التحقق من الحل
+            function checkSolution(current, solution) {
+                const isCorrect = current.every((num, index) => num === solution[index]);
+                
+                if (isCorrect) {
+                    puzzleFeedback.textContent = '✅ أحسنت! الحل صحيح';
+                    puzzleFeedback.className = 'success';
+                    nextStageBtn.style.display = 'block';
+                    saveHistory(true);
+                }
+            }
+
+            // المرحلة التالية
+            function nextStage() {
+                const puzzle = puzzles[state.currentPuzzle];
+                
+                if (state.currentStage < puzzle.stages.length - 1) {
+                    state.currentStage++;
+                    loadPuzzle();
+                } else {
+                    // الانتقال إلى اللغز التالي
+                    if (state.currentPuzzle < puzzles.length - 1) {
+                        state.currentPuzzle++;
+                        state.currentStage = 0;
+                        loadPuzzle();
+                    } else {
+                        // انتهت جميع الألغاز
+                        alert('تهانينا! لقد أكملت جميع الألغاز');
+                        showView('main-menu');
+                    }
+                }
+            }
+
+            // حفظ السجل
+            function saveHistory(isSuccess) {
+                const record = {
+                    username: state.username,
+                    puzzleId: puzzles[state.currentPuzzle].id,
+                    puzzleTitle: puzzles[state.currentPuzzle].title,
+                    stage: state.currentStage + 1,
+                    success: isSuccess,
+                    date: new Date().toLocaleDateString('ar-EG')
+                };
+
+                state.history.push(record);
+                localStorage.setItem('puzzleHistory', JSON.stringify(state.history));
+            }
+
+            // عرض السجل
+            function showHistory() {
+                showView('history-section');
+                loadHistory();
+            }
+
+            // تحميل السجل
+            function loadHistory() {
+                historyList.innerHTML = '';
+                
+                if (state.history.length === 0) {
+                    historyList.innerHTML = '<p>لا توجد سجلات حتى الآن</p>';
+                    return;
+                }
+
+                state.history.forEach((record, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    
+                    const status = record.success ? 'تم' : 'لم يتم';
+                    const statusClass = record.success ? 'success' : 'failed';
+                    
+                    item.innerHTML = `
+                        <button class="delete-item" data-index="${index}">🗑️</button>
+                        <div class="history-info">
+                            <h3>${record.username}</h3>
+                            <p>اللغز: ${record.puzzleTitle} (المرحلة ${record.stage})</p>
+                            <p>الحالة: <span class="${statusClass}">${status}</span></p>
+                            <p>التاريخ: ${record.date}</p>
+                        </div>
+                    `;
+
+                    historyList.appendChild(item);
+                });
+
+                // إضافة معالجي الأحداث لأزرار الحذف
+                document.querySelectorAll('.delete-item').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const index = parseInt(this.dataset.index);
+                        deleteHistoryItem(index);
+                    });
+                });
+            }
+
+            // حذف عنصر من السجل
+            function deleteHistoryItem(index) {
+                state.history.splice(index, 1);
+                localStorage.setItem('puzzleHistory', JSON.stringify(state.history));
+                loadHistory();
+            }
+
+            // حذف السجل بالكامل
+            function clearAllHistory() {
+                if (confirm('هل أنت متأكد من حذف السجل بالكامل؟')) {
+                    state.history = [];
+                    localStorage.removeItem('puzzleHistory');
+                    loadHistory();
+                }
+            }
+
+            // بدء التطبيق
+            init();
+        });
+    </script>
+</body>
+</html>
