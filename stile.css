@@ -1,0 +1,14 @@
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial}
+body{background:#f5f7fa;color:#333;direction:rtl}
+.container{max-width:800px;margin:0 auto;padding:20px}
+h1,h2{color:#2c3e50;text-align:center;margin:15px 0}
+.btn{background:#3498db;color:#fff;border:none;padding:10px;margin:5px 0;border-radius:5px;cursor:pointer;width:100%}
+.delete-btn{background:#e74c3c}
+#main-menu{display:block}
+#username-section,#puzzle-section,#history-section{display:none}
+.puzzle-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px auto;max-width:300px}
+.puzzle-tile{background:#3498db;color:#fff;height:80px;display:flex;align-items:center;justify-content:center;border-radius:5px;cursor:pointer}
+.puzzle-tile.empty{background:transparent;border:2px dashed #ccc}
+#puzzle-feedback{text-align:center;margin:10px 0}
+.history-item{background:#fff;padding:10px;margin:10px 0;border-radius:5px;position:relative}
+.delete-item{position:absolute;left:10px;top:10px;background:#e74c3c;color:#fff;border:none;border-radius:50%;width:25px;height:25px;cursor:pointer}
